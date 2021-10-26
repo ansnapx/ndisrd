@@ -1,0 +1,75 @@
+;-------------------------------------------------------------------------; 
+; Copyright 2001-2021 ansnap@sina.com 
+; 
+; This program is free software: you can redistribute it and/or modify
+; it under the terms of the GNU General Public License as published by
+; the Free Software Foundation, either version 3 of the License, or
+; (at your option) any later version.
+; 
+; This program is distributed in the hope that it will be useful,
+; but WITHOUT ANY WARRANTY; without even the implied warranty of
+; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+; GNU General Public License for more details.
+; 
+; You should have received a copy of the GNU General Public License
+; along with this program.  If not, see <https://www.gnu.org/licenses/>.
+; 
+;-------------------------------------------------------------------------
+[Version]
+signature  = "$Windows NT$"
+Class      = Net
+ClassGUID  = {4d36e972-e325-11ce-bfc1-08002be10318}
+Provider   = %AS%
+DriverVer  = 05/09/2021,2.0.0.0
+CatalogFile = ansfltr_m.cat
+
+[ControlFlags]
+ExcludeFromSelect = nt_ansfltrmp
+
+[DestinationDirs]
+DefaultDestDir=12
+; No files to copy 
+
+[Manufacturer]
+%AS% = AS,ntamd64,ntx86
+
+[AS.ntamd64]
+%ansfltrMP_Desc% = ansfltrMP.ndi, nt_ansfltrmp
+
+[AS.ntx86]
+%ansfltrMP_Desc% = ansfltrMP.ndi, nt_ansfltrmp
+
+[ansfltrMP.ndi]
+Characteristics = 0x29 ;NCF_NOT_USER_REMOVABLE | NCF_VIRTUAL | NCF_HIDDEN
+;CopyFiles = 
+
+[ansfltrMP.ndi.Services]
+AddService = ansfltr,0x2, ansfltrMP.AddService
+
+
+[ansfltrMP.AddService]
+ServiceType    = 1 ;SERVICE_KERNEL_DRIVER
+StartType      = 3 ;SERVICE_DEMAND_START
+ErrorControl   = 1 ;SERVICE_ERROR_NORMAL
+ServiceBinary  = %12%\ansfltr.sys
+
+
+[ansfltrMP.AddService.AddReg]
+; ----------------------------------------------------------------------
+; Add any miniport-specific parameters here.  These are params that your
+; filter device is going to use.
+;
+;HKR, Parameters, ParameterName,  0x10000, "MultiSz", "Parameter", "Value"
+;HKR, Parameters, ParameterName2, 0x10001, 4
+
+[Strings]
+AS = "ansnap@sina.com"
+ansfltrMP_Desc = "ANS Network Miniport"
+
+[SourceDisksNames]
+;None 
+
+[SourceDisksFiles]
+;None
+
+

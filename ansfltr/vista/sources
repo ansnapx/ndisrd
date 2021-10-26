@@ -1,0 +1,23 @@
+TARGETNAME=ansfltr
+TARGETTYPE=DRIVER
+
+MSC_WARNING_LEVEL=/W3 /WX
+
+C_DEFINES=$(C_DEFINES) -DNDIS_WDM=1
+C_DEFINES=$(C_DEFINES) -DNDIS60=1
+C_DEFINES=$(C_DEFINES) -DNDISLWF=1
+
+TARGETLIBS=\
+	$(DDK_LIB_PATH)\ndis.lib
+
+SOURCES=\
+    init.c \
+    filter.c \
+    device.c \
+     ..\callbacks.c \
+    ..\ioctl.c \
+    ..\ansfltr.rc
+    
+PRECOMPILED_INCLUDE=precomp.h
+PRECOMPILED_PCH=precomp.pch
+PRECOMPILED_OBJ=precomp.obj

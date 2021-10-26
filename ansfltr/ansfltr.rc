@@ -1,0 +1,46 @@
+/*
+ * Copyright 2001-2021 ansnap@sina.com 
+ *
+ * This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+#include <windows.h>
+#include "..\Shared\version.h"
+
+#define	VER_FILETYPE	VFT_DRV
+#define	VER_FILESUBTYPE	VFT2_DRV_NETWORK
+
+#if DBG
+#define VER_FILEFLAGS               (VS_FF_DEBUG|VS_FF_PRERELEASE|VS_FF_PRIVATEBUILD)
+#else
+#define VER_FILEFLAGS               0
+#endif
+
+#define VER_FILEFLAGSMASK           VS_FFI_FILEFLAGSMASK
+#define VER_FILEOS                  VOS_NT_WINDOWS32
+
+#define VER_FILEDESCRIPTION_STR     "ANS Filter Driver"
+#define VER_INTERNALNAME_STR        "ansfltr.sys"
+#define VER_ORIGINALFILENAME_STR    "ansfltr.sys"
+#define VER_PRODUCTNAME_STR         "ANS Filter Driver"
+#define VER_FILEVERSION             VER_MAJOR,VER_MINOR,VER_REV,VER_BUILD
+#define VER_FILEVERSION_STR         VER_STRING
+#define VER_PRODUCTVERSION          VER_MAJOR,VER_MINOR,VER_REV,VER_BUILD
+#define VER_PRODUCTVERSION_STR      VER_STRING
+#define VER_LEGALCOPYRIGHT_YEARS    "2021"
+#define VER_COMPANYNAME_STR         "ansnap@sina.com"
+#define VER_LEGALCOPYRIGHT_STR      "Copyright 2001-2021 ansnap@sina.com"
+
+#include "common.ver"
+
+

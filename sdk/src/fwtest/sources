@@ -1,0 +1,34 @@
+TARGETNAME=fwtest
+TARGETTYPE=DRIVER
+TARGETPATH=obj
+
+!if !defined(DDK_TARGET_OS) || "$(DDK_TARGET_OS)"=="WinLH"
+
+C_DEFINES=$(C_DEFINES) -DNDIS60=1
+
+!	if $(386)
+TARGETLIBS=$(TARGETLIBS) ..\..\lib\wlh\i386\ansfw.lib
+!	else
+TARGETLIBS=$(TARGETLIBS) ..\..\lib\wlh\amd64\ansfw.lib
+!	endif
+
+!else 
+
+C_DEFINES=$(C_DEFINES) -DNDIS40=1
+
+!	if $(386)
+TARGETLIBS=$(TARGETLIBS) ..\..\lib\wxp\i386\ansfw.lib
+!	else
+TARGETLIBS=$(TARGETLIBS) ..\..\lib\wxp\amd64\ansfw.lib
+!	endif
+
+!endif
+
+SOURCES=\
+    init.c\
+    fwtest.c\
+    fwtest.rc
+    
+PRECOMPILED_INCLUDE=precomp.h
+PRECOMPILED_PCH=precomp.pch
+PRECOMPILED_OBJ=precomp.obj

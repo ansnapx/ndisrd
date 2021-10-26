@@ -1,0 +1,106 @@
+;-------------------------------------------------------------------------; 
+; Copyright 2001-2021 ansnap@sina.com 
+; 
+; This program is free software: you can redistribute it and/or modify
+; it under the terms of the GNU General Public License as published by
+; the Free Software Foundation, either version 3 of the License, or
+; (at your option) any later version.
+; 
+; This program is distributed in the hope that it will be useful,
+; but WITHOUT ANY WARRANTY; without even the implied warranty of
+; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+; GNU General Public License for more details.
+; 
+; You should have received a copy of the GNU General Public License
+; along with this program.  If not, see <https://www.gnu.org/licenses/>.
+; 
+;-------------------------------------------------------------------------
+[version]
+Signature   = "$Windows NT$"
+Class       = NetService
+ClassGUID   = {4D36E974-E325-11CE-BFC1-08002BE10318}
+Provider    = %Msft%
+DriverVer   = 05/09/2021,2.0.0.0
+CatalogFile = ansfltr.cat
+
+[Manufacturer]
+%Msft%=AS,NTx86,NTia64,NTamd64
+
+;For Win2K
+
+[AS]
+%ansfltr_Desc% = Install, ansfltr
+ 
+;For WinXP and later
+
+[AS.NTx86]
+%ansfltr_Desc%=Install, ansfltr
+
+[AS.NTia64]
+%ansfltr_Desc%=Install, ansfltr
+
+[AS.NTamd64]
+%ansfltr_Desc%=Install, ansfltr
+
+;-------------------------------------------------------------------------
+; Installation Section
+;-------------------------------------------------------------------------
+[Install]
+AddReg=Inst_Ndi
+;Characteristics=0x40028 ; NCF_LW_FILTER | NCF_NOT_USER_REMOVABLE | NCF_HIDDEN
+Characteristics=0x40000 ; NCF_LW_FILTER
+NetCfgInstanceId="{B6C12C2C-A121-4b19-9736-22283D4917B8}"
+Copyfiles = ansfltr.copyfiles.sys
+
+[SourceDisksNames]
+1=%ansfltr_Desc%,"",,
+
+[SourceDisksFiles]
+ansfltr.sys=1
+
+[DestinationDirs]
+DefaultDestDir=12
+ansfltr.copyfiles.sys=12
+
+[ansfltr.copyfiles.sys]
+ansfltr.sys,,,2
+
+
+;-------------------------------------------------------------------------
+; Ndi installation support
+;-------------------------------------------------------------------------
+[Inst_Ndi]
+HKR, Ndi,Service,,"ansfltr"
+HKR, Ndi,CoServices,0x00010000,"ansfltr"
+HKR, Ndi,HelpText,,%ansfltr_HelpText%
+HKR, Ndi,FilterClass,, compression
+HKR, Ndi,FilterType,0x00010001,0x00000002
+HKR, Ndi\Interfaces,UpperRange,,"noupper"
+HKR, Ndi\Interfaces,LowerRange,,"nolower"
+HKR, Ndi\Interfaces, FilterMediaTypes,,"ethernet, wan"
+HKR, Ndi,FilterRunType, 0x00010001, 0x00000001 ;this filter must run before any protocol can bind to the below miniport 
+
+;-------------------------------------------------------------------------
+; Service installation support
+;-------------------------------------------------------------------------
+[Install.Services]
+AddService=ansfltr,,ansfltr_Service_Inst
+
+[ansfltr_Service_Inst]
+DisplayName     = %ansfltr_Desc%
+ServiceType     = 1 ;SERVICE_KERNEL_DRIVER
+StartType       = 1 ;SERVICE_SYSTEM_START
+ErrorControl    = 1 ;SERVICE_ERROR_NORMAL
+ServiceBinary   = %12%\ansfltr.sys
+LoadOrderGroup  = NDIS
+Description     = %ansfltr_Desc%
+
+[Strings]
+AS = "ansnap@sina.com"
+ansfltr_Desc = "ANS Filter Driver"
+ansfltr_HelpText = "ANS Filter Driver"
+
+
+
+
+

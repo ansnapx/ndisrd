@@ -1,0 +1,54 @@
+/*
+ * Copyright 2001-2021 ansnap@sina.com 
+ *
+ * This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+#pragma once
+
+extern NDIS_SPIN_LOCK g_PacketLock;
+extern LIST_ENTRY g_PacketsList;
+
+VOID InitializeANSfltr();
+VOID UnInitializeANSfltr();
+VOID OpenAdapter( PVOID pAdapter, PNDIS_STRING pBindingName );
+VOID CloseAdapter( PVOID pAdapter );
+BOOLEAN IsInstancesListEmpty();
+
+NTSTATUS 
+FLTRegisterCallbacks(
+	IN OUT PFLT_INSTANCE * ppInstance, 
+	IN PFLT_REGISTRATION_CONTEXT pContext
+);
+
+NTSTATUS
+FLTDeregisterCallbacks(
+	IN PFLT_INSTANCE pInstance
+);
+
+NTSTATUS 
+FLTInjectRequest ( 	
+	IN PFLT_INSTANCE Instance OPTIONAL,
+	IN PFLT_PACKET Packet
+);
+
+NTSTATUS
+FLTCloneRequest (
+	IN PFLT_PACKET pPacket,
+	OUT PFLT_PACKET *ppClonePacket
+	);
+
+VOID
+FLTFreeCloneRequest (
+	IN PFLT_PACKET pClonePacket
+	);

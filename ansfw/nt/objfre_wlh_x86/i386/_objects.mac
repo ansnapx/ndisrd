@@ -1,0 +1,26 @@
+
+
+386_OBJECTS=\
+ $(OBJ_PATH)\$O\callbacks.obj \
+ $(OBJ_PATH)\$O\tcpip.obj \
+ $(OBJ_PATH)\$O\reassembly.obj \
+ $(OBJ_PATH)\$O\ipmon.obj \
+ $(OBJ_PATH)\$O\anshlp.obj \
+ $(OBJ_PATH)\$O\firewall.obj \
+ $(OBJ_PATH)\$O\ksutil.obj \
+ $(OBJ_PATH)\$O\openconn.obj \
+
+
+_RES_FILE=$(OBJ_PATH)\$O\ansfw.res
+PRECOMPILED_INCLUDE_BASENAME=precomp.h
+
+
+
+
+# lowercased
+BASEDIR=c:\winddk\6001.18002
+OBJECT_ROOT=c:\winddk\6001.18002
+MAKEDIR_LOWERCASE=c:\documents and settings\winxp\desktop\ans\src\ansfw\nt
+OBJ_PATH=c:\documents and settings\winxp\desktop\ans\src\ansfw\nt
+CONCURRENT_MIDL=0
+CONCURRENT_MANIFEST_BUILD=0

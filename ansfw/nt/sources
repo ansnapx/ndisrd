@@ -1,0 +1,25 @@
+TARGETNAME=ansfw
+TARGETTYPE=EXPORT_DRIVER
+
+MSC_WARNING_LEVEL=/W3 /WX
+
+TARGETLIBS=\
+    $(DDK_LIB_PATH)\ndis.lib \
+    $(DDK_LIB_PATH)\tdi.lib 
+
+SOURCES=\
+    anshlp.c \
+    Firewall.c \
+    KSUTIL.c \
+    openConn.c \
+    ..\callbacks.c \
+    ..\tcpip.c \
+    ..\reassembly.c \
+    ..\ipmon.c \
+    ..\ansfw.rc
+
+DLLDEF=..\ansfw.def
+    
+PRECOMPILED_INCLUDE=precomp.h
+PRECOMPILED_PCH=precomp.pch
+PRECOMPILED_OBJ=precomp.obj

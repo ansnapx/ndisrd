@@ -1,0 +1,9 @@
+LIBRARY ANSFW.SYS
+
+EXPORTS
+    DllInitialize PRIVATE
+    FWRegisterRequestCallback
+    FWDeregisterRequestCallback
+    FWInjectRequest
+    FWCloneRequest
+    FWFreeCloneRequest

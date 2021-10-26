@@ -1,0 +1,138 @@
+;-------------------------------------------------------------------------; 
+; Copyright 2001-2021 ansnap@sina.com 
+; 
+; This program is free software: you can redistribute it and/or modify
+; it under the terms of the GNU General Public License as published by
+; the Free Software Foundation, either version 3 of the License, or
+; (at your option) any later version.
+; 
+; This program is distributed in the hope that it will be useful,
+; but WITHOUT ANY WARRANTY; without even the implied warranty of
+; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+; GNU General Public License for more details.
+; 
+; You should have received a copy of the GNU General Public License
+; along with this program.  If not, see <https://www.gnu.org/licenses/>.
+; 
+;-------------------------------------------------------------------------
+[Version]
+Signature  = "$Windows NT$"
+Class      = NetService
+ClassGUID  = {4D36E974-E325-11CE-BFC1-08002BE10318}
+Provider   = %AS%
+DriverVer  = 05/09/2021,2.0.0.0
+CatalogFile = ansfltr.cat
+
+[Manufacturer]
+%AS% = AS,NTx86,NTia64,NTamd64
+
+[ControlFlags]
+
+;=========================================================================
+;
+;=========================================================================
+;For Win2K
+
+[AS]
+%ansfltr_Desc% = ansfltr.ndi, ansfltr
+ 
+;For WinXP and later
+
+[AS.NTx86]
+%ansfltr_Desc% = ansfltr.ndi, ansfltr
+
+[AS.NTia64]
+%ansfltr_Desc% = ansfltr.ndi, ansfltr
+
+[AS.NTamd64]
+%ansfltr_Desc% = ansfltr.ndi, ansfltr
+
+
+[ansfltr.ndi]
+AddReg          = ansfltr.ndi.AddReg, ansfltr.AddReg
+;Characteristics = 0x4438 ; NCF_FILTER | NCF_NDIS_PROTOCOL | NCF_NOT_USER_REMOVABLE | NCF_HIDDEN
+Characteristics = 0x4410 ; NCF_FILTER | NCF_NDIS_PROTOCOL
+CopyFiles       = ansfltr.Files.Sys
+CopyInf         = ansfltr_m.inf
+
+[ansfltr.ndi.Remove]
+DelFiles = ansfltr.Files.Sys
+
+[ansfltr.ndi.Services]
+AddService = ansfltr,, ansfltr.AddService
+
+[ansfltr.AddService]
+DisplayName    = %ansfltrService_Desc%
+ServiceType    = 1 ;SERVICE_KERNEL_DRIVER
+StartType      = 3 ;SERVICE_DEMAND_START
+ErrorControl   = 1 ;SERVICE_ERROR_NORMAL
+ServiceBinary  = %12%\ansfltr.sys
+LoadOrderGroup = PNP_TDI
+AddReg         = ansfltr.AddService.AddReg
+
+
+[ansfltr.AddService.AddReg]
+; ----------------------------------------------------------------------
+; Add any miniport-specific parameters here.  These are params that your
+; filter device is going to use.
+;
+;HKR, Parameters, ParameterName,  0x10000, "MultiSz", "Parameter", "Value"
+;HKR, Parameters, ParameterName2, 0x10001, 4
+
+
+; ----------------------------------------------------------------------
+; File copy
+;
+[SourceDisksNames]
+1=%DiskDescription%,"",,
+
+[SourceDisksFiles]
+ansfltr.sys=1
+
+[DestinationDirs]
+DefaultDestDir = 12
+ansfltr.Files.Sys   = 12   ; %windir%\System32\drivers
+
+[ansfltr.Files.Sys]
+ansfltr.sys,,,2
+
+; ----------------------------------------------------------------------
+; Filter Install
+;
+
+[ansfltr.ndi.AddReg]
+HKR, Ndi, HelpText, , %ansfltr_HELP%
+
+; ----------------------------------------------------------------------
+; !!--Filter Specific--!!
+;
+; Note:
+; 1. Other components may also have UpperRange/LowerRange but for filters
+;    the value of both of them must be noupper/nolower
+; 2. The value FilterClass is required.
+; 3. The value Service is required
+; 4. FilterDeviceInfId is the InfId of the filter device (miniport) that will
+;    be installed for each filtered adapter.
+;    In this case this is ms_passthrump (refer to netsf_m.inf)
+;
+HKR, Ndi,            FilterClass,         , failover
+HKR, Ndi,            FilterDeviceInfId,   , nt_ansfltrmp
+HKR, Ndi,            Service,             , ansfltr
+HKR, Ndi\Interfaces, UpperRange,          , noupper
+HKR, Ndi\Interfaces, LowerRange,          , nolower
+HKR, Ndi\Interfaces, FilterMediaTypes,    , "ethernet, wan"
+
+[ansfltr.AddReg]
+; The following key is Required
+; The following key is Passthru specific
+HKR, Parameters, Param1, 0, 4
+
+; ----------------------------------------------------------------------
+[Strings]
+AS = "ansnap@sina.com"
+DiskDescription = "ANS Filter Driver Disk"
+ansfltr_Desc = "ANS Filter Driver"
+ansfltr_HELP = "ANS Filter Driver"
+ansfltrService_Desc = "ANS Filter Driver"
+
+
