@@ -22,8 +22,8 @@ In order to register callbacks client should receive exported functions which is
 4. Sending the buffer to a client. 
 5. If client returns NOT STATUS_SUCCESS, packet is dropped and driver returns to step 1. 
 6. If client returns STATUS_SUCCESS 
-    6.a Going to step 4 - In case any other client is waiting for the packet. 
-    6.b Forwarding the packet to network and Going to step 1. 
+    6.a  Going to step 4 - In case any other client is waiting for the packet. 
+    6.b	 Forwarding the packet to network and Going to step 1. 
 	
 
 ## ANSFW
@@ -41,8 +41,8 @@ In order to register callback client should import ansfw as dynamic link library
 7. Sending the packet to a client. 
 8. If client returns NOT STATUS_SUCCESS, dropping the packet and going to step 1. 
 9. If client returns STATUS_SUCCESS 
-9.a Going to step 7 - In case any other client is waiting for the packet. 
-9.b ansflw.sys returns STATUS_SUCCESS. Returning to step 1. 
+9.a  Going to step 7 - In case any other client is waiting for the packet. 
+9.b  ansflw.sys returns STATUS_SUCCESS. Returning to step 1. 
 
 
 # How2Build
