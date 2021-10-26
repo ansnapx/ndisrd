@@ -129,7 +129,6 @@ PNET_BUFFER_LIST CreateNetBufferList(
 
 NDIS_SPIN_LOCK g_AdapterLock;
 LIST_ENTRY g_AdapterList;
-NDIS_HANDLE g_hNBLPool;
 NDIS_HANDLE g_hDriver; // NDIS handle for filter driver
 
 
@@ -141,7 +140,6 @@ NTSTATUS
 RegisterFilterDriver( PDRIVER_OBJECT pDriverObject )
 {
 	NDIS_STATUS status;	
-	NET_BUFFER_LIST_POOL_PARAMETERS poolParameters = {0};
 	NDIS_FILTER_DRIVER_CHARACTERISTICS FChars = {0};
 
 	dprintf( "===> RegisterFilterDriver. pDriverObject = %p.\n", pDriverObject );
@@ -149,28 +147,14 @@ RegisterFilterDriver( PDRIVER_OBJECT pDriverObject )
 	InitializeListHead( &g_AdapterList );
 	NdisAllocateSpinLock( &g_AdapterLock );
 
-	poolParameters.Header.Size = sizeof(NET_BUFFER_LIST_POOL_PARAMETERS);
-	poolParameters.Header.Type = NDIS_OBJECT_TYPE_DEFAULT;
-	poolParameters.Header.Revision = NET_BUFFER_LIST_POOL_PARAMETERS_REVISION_1;
-	poolParameters.fAllocateNetBuffer = TRUE;
-	//poolParameters.PoolTag = DRIVER_TAG;
-	poolParameters.PoolTag = '1lfc';
-	g_hNBLPool = NdisAllocateNetBufferListPool( NULL, &poolParameters );
-	if ( g_hNBLPool == NULL )
-	{
-		dprintf( "NdisAllocateNetBufferListPool failed.\n");
-		NdisFreeSpinLock( &g_FilterLock );
-		return STATUS_INSUFFICIENT_RESOURCES;
-	}
-
 	FChars.Header.Type = NDIS_OBJECT_TYPE_FILTER_DRIVER_CHARACTERISTICS;
 	FChars.Header.Size = sizeof(NDIS_FILTER_DRIVER_CHARACTERISTICS);
 	FChars.Header.Revision = NDIS_FILTER_CHARACTERISTICS_REVISION_1;
 	FChars.MajorNdisVersion = FILTER_MAJOR_NDIS_VERSION;
 	FChars.MinorNdisVersion = FILTER_MINOR_NDIS_VERSION;
 	FChars.MajorDriverVersion = 1;
-	//FChars.MinorDriverVersion = 0;
-	//FChars.Flags = 0;
+	FChars.MinorDriverVersion = 0;
+	FChars.Flags = 0;
 
 	RtlInitUnicodeString(&FChars.ServiceName, FILTER_SERVICE_NAME);
 	RtlInitUnicodeString(&FChars.FriendlyName, FILTER_FRIENDLY_NAME);
@@ -210,7 +194,6 @@ RegisterFilterDriver( PDRIVER_OBJECT pDriverObject )
 	if( status != NDIS_STATUS_SUCCESS )
 	{
 		dprintf( "NdisFRegisterFilterDriver failed.\n");
-		NdisFreeNetBufferListPool( g_hNBLPool );
 	}
 
 	return status;
@@ -222,8 +205,6 @@ DeregisterFilterDriver()
 	dprintf( "===> DeregisterFilterDriver.\n");
 
 	NdisFDeregisterFilterDriver( g_hDriver );
-
-	NdisFreeNetBufferListPool( g_hNBLPool );
 
 	NdisFreeSpinLock( &g_AdapterLock );
 }
@@ -258,8 +239,15 @@ FilterAttach(
 	NDIS_FILTER_ATTRIBUTES FilterAttributes;
 	ULONG Size;
 	PLIST_ENTRY pListEntry;
+	NET_BUFFER_LIST_POOL_PARAMETERS PoolParameters;
 
 	dprintf( "===> FilterAttach. NdisFilterHandle = %p\n", NdisFilterHandle);
+
+	if ( AttachParameters->MiniportMediaType != NdisMedium802_3 && 
+		AttachParameters->MiniportMediaType != NdisMediumWan )
+	{
+		return NDIS_STATUS_INVALID_PARAMETER;
+	}
 
 	Size = sizeof(FLT_MODULE_CONTEXT) + 
 		AttachParameters->FilterModuleGuidName->Length + 
@@ -302,7 +290,7 @@ FilterAttach(
 	FilterAttributes.Header.Revision = NDIS_FILTER_ATTRIBUTES_REVISION_1;
 	FilterAttributes.Header.Size = sizeof(NDIS_FILTER_ATTRIBUTES);
 	FilterAttributes.Header.Type = NDIS_OBJECT_TYPE_FILTER_ATTRIBUTES;
-	//FilterAttributes.Flags = 0;
+	FilterAttributes.Flags = 0;
 
 	status = NdisFSetAttributes(
 		NdisFilterHandle, 
@@ -313,6 +301,26 @@ FilterAttach(
 		dprintf( "Failed to set attributes.\n");
 		NdisFreeMemory(pFilter, 0, 0);
 		return status;
+	}
+
+	NdisZeroMemory(&PoolParameters, sizeof(NET_BUFFER_LIST_POOL_PARAMETERS));
+
+	PoolParameters.Header.Type = NDIS_OBJECT_TYPE_DEFAULT;
+	PoolParameters.Header.Revision = NET_BUFFER_LIST_POOL_PARAMETERS_REVISION_1;
+	PoolParameters.Header.Size = sizeof(PoolParameters);
+	PoolParameters.ProtocolId = 0;
+	PoolParameters.ContextSize = 0;
+	PoolParameters.fAllocateNetBuffer = TRUE;
+	PoolParameters.PoolTag = '3lft';
+
+	pFilter->NetBufferListPool = NdisAllocateNetBufferListPool(
+		NdisFilterHandle,
+		&PoolParameters);
+
+	if (pFilter->NetBufferListPool == NULL)
+	{
+		NdisFreeMemory(pFilter, 0, 0);
+		return NDIS_STATUS_RESOURCES;
 	}
 
 	NdisAcquireSpinLock( &g_AdapterLock );
@@ -385,6 +393,12 @@ FilterDetach(
 
 	CloseAdapter( pFilter );
 
+	if (pFilter->NetBufferListPool != NULL)
+	{
+		NdisFreeNetBufferListPool(pFilter->NetBufferListPool);
+		pFilter->NetBufferListPool = NULL;
+	}
+
 	NdisAcquireSpinLock( &g_AdapterLock );
 	RemoveEntryList( &pFilter->m_qLink );
 	NdisReleaseSpinLock( &g_AdapterLock );
@@ -392,13 +406,6 @@ FilterDetach(
 	NdisFreeMemory( pFilter, 0, 0 );
 }
 
-/**
-*	@brief Send Net Buffer List handler
-*	@param FilterModuleContext - pointer to the filter context stucture. 
-*	@param NetBufferLists - Pointer to a List of NetBufferLists.
-*   @param PortNumber - Port Number to which this send is targetted
-*   @param SendFlags - Specifies if the call is at DISPATCH_LEVEL    
-*/
 VOID
 FilterSendNetBufferLists(
 						 IN  NDIS_HANDLE         FilterModuleContext,
@@ -468,7 +475,6 @@ FilterSendNetBufferLists(
 
 			pNetBufferList = NET_BUFFER_LIST_NEXT_NBL(pNetBufferList);
 		}
-
 	}
 
 	NdisFSendNetBufferListsComplete( pFilter->m_FilterHandle, NetBufferLists,  
@@ -493,6 +499,7 @@ FilterCancelSendNetBufferLists(
 	NdisFCancelSendNetBufferLists(pFilter->m_FilterHandle, CancelId);
 }
 
+
 VOID
 FilterSendNetBufferListsComplete(
         IN  NDIS_HANDLE         FilterModuleContext,
@@ -506,17 +513,20 @@ FilterSendNetBufferListsComplete(
 
 	while( NetBufferLists )
 	{
-		PNET_BUFFER_LIST pNBL = NetBufferLists;
+		PNET_BUFFER_LIST CurrNbl = NetBufferLists;
 		NetBufferLists = NET_BUFFER_LIST_NEXT_NBL(NetBufferLists);
 
-		if( pNBL->SourceHandle == pFilter->m_FilterHandle ) // Our NBL
+		if( CurrNbl->SourceHandle == pFilter->m_FilterHandle ) // Our NBL
 		{		
-			FLTFreeCloneRequest( (PFLT_PACKET)pNBL->Context );
+			if ( NdisGetPoolFromNetBufferList(CurrNbl) == pFilter->NetBufferListPool )
+			{
+				FLTFreeCloneRequest( (PFLT_PACKET)(CurrNbl->ProtocolReserved[3]) );
+			}
 		}
 		else
 		{
-			NET_BUFFER_LIST_NEXT_NBL(pNBL) = NULL;
-			NdisFSendNetBufferListsComplete( pFilter->m_FilterHandle, pNBL, SendCompleteFlags );
+			NET_BUFFER_LIST_NEXT_NBL(CurrNbl) = NULL;
+			NdisFSendNetBufferListsComplete( pFilter->m_FilterHandle, CurrNbl, SendCompleteFlags );
 		}
 	}
 }
@@ -632,17 +642,20 @@ FilterReturnNetBufferLists(
 
 	while( NetBufferLists )
 	{
-		PNET_BUFFER_LIST pNBL = NetBufferLists;
+		PNET_BUFFER_LIST CurrNbl = NetBufferLists;
 		NetBufferLists = NET_BUFFER_LIST_NEXT_NBL(NetBufferLists);
 
-		if( pNBL->SourceHandle == pFilter->m_FilterHandle ) // Our NBL
+		if( CurrNbl->SourceHandle == pFilter->m_FilterHandle ) // Our NBL
 		{		
-			FLTFreeCloneRequest( (PFLT_PACKET)pNBL->Context );
+			if ( NdisGetPoolFromNetBufferList(CurrNbl) == pFilter->NetBufferListPool )
+			{
+				FLTFreeCloneRequest( (PFLT_PACKET)(CurrNbl->ProtocolReserved[3]) );
+			}
 		}
 		else
 		{
-			NET_BUFFER_LIST_NEXT_NBL(pNBL) = NULL;
-			NdisFReturnNetBufferLists( pFilter->m_FilterHandle, pNBL, ReturnFlags ); 
+			NET_BUFFER_LIST_NEXT_NBL(CurrNbl) = NULL;
+			NdisFReturnNetBufferLists( pFilter->m_FilterHandle, CurrNbl, ReturnFlags ); 
 		}
 	}
 }
@@ -702,14 +715,14 @@ PNET_BUFFER_LIST CreateNetBufferList(
 		return NULL;
 	}
 
-	pNetBufferList = NdisAllocateNetBufferAndNetBufferList( g_hNBLPool, 0, 0, pMdl, 0, pPacket->m_BufferSize );
+	pNetBufferList = NdisAllocateNetBufferAndNetBufferList( pPacket->m_pAdapter->NetBufferListPool, 0, 0, pMdl, 0, pPacket->m_BufferSize );
 	if( pNetBufferList == NULL )
 	{
 		NdisFreeMdl( pMdl );
 		return NULL;
 	}
 
-	pNetBufferList->Context = (PNET_BUFFER_LIST_CONTEXT)pPacket;
+	pNetBufferList->ProtocolReserved[3] = (PNET_BUFFER_LIST_CONTEXT)pPacket;
 	pNetBufferList->SourceHandle = pPacket->m_pAdapter->m_FilterHandle;
 
 	if( pPacket->m_Direction == PHYSICAL_DIRECTION_IN )
@@ -737,7 +750,11 @@ SendPacket(
 
 	if( FilterHandle )
 	{
+		KIRQL Irql;
+
 		FLTCloneRequest( pPacket, &pPacket );
+
+		KeRaiseIrql(DISPATCH_LEVEL, &Irql);
 
 		if( pPacket->m_Direction == PHYSICAL_DIRECTION_IN )
 		{
@@ -754,8 +771,10 @@ SendPacket(
 				FilterHandle,
 				pPacket->m_pNBL,
 				pPacket->m_NdisPortNumber,
-				pPacket->m_Flags );
+				pPacket->m_Flags | NDIS_SEND_FLAGS_DISPATCH_LEVEL );
 		}
+
+		KeLowerIrql(Irql);
 
 		return STATUS_SUCCESS;
 	}
